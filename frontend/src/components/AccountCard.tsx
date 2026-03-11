@@ -28,14 +28,33 @@ export default function AccountCard({ account, animationDelay }: AccountCardProp
 
   const hasBalances = account.balances && account.balances.length > 0;
 
-  async function handleCopy() {
+  function handleCopy() {
     try {
-      await navigator.clipboard.writeText(account.address);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      // Try modern API first
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(account.address).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }).catch(fallbackCopy);
+      } else {
+        fallbackCopy();
+      }
     } catch {
-      // Clipboard API may fail in non-secure contexts
+      fallbackCopy();
     }
+  }
+
+  function fallbackCopy() {
+    const textarea = document.createElement('textarea');
+    textarea.value = account.address;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   }
 
   return (
