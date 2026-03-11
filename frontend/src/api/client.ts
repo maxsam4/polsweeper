@@ -55,6 +55,32 @@ export async function createAccounts(
   return data.accounts;
 }
 
+export interface SweepEventResponse {
+  id: number;
+  account_address: string;
+  master: string;
+  tx_hash: string;
+  tokens_swept: string[];
+  created_at: string;
+}
+
+export interface StatsResponse {
+  totalAccounts: number;
+  uniqueMasters: number;
+  deployedAccounts: number;
+  undeployedAccounts: number;
+  totalSweeps: number;
+  recentSweeps: SweepEventResponse[];
+}
+
+export async function getStats(): Promise<StatsResponse> {
+  const res = await fetch(`${BASE_URL}/api/stats`, {
+    method: 'GET',
+    headers: headers(),
+  });
+  return handleResponse<StatsResponse>(res);
+}
+
 export async function sweepAccount(address: string): Promise<SweepResponse> {
   const res = await fetch(`${BASE_URL}/api/sweep`, {
     method: 'POST',

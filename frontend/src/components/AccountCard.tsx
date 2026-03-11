@@ -7,10 +7,6 @@ interface AccountCardProps {
   animationDelay: number;
 }
 
-function truncateAddress(addr: string): string {
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-}
-
 function formatBalance(raw: string): string {
   const wei = BigInt(raw);
   const whole = wei / BigInt(10 ** 18);

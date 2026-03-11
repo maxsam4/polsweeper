@@ -8,6 +8,7 @@ import { sweepAccount } from "./services/sweep";
 import createRouter from "./routes/create";
 import accountsRouter from "./routes/accounts";
 import sweepRouter from "./routes/sweep";
+import statsRouter from "./routes/stats";
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use("/api", authMiddleware);
 app.use("/api/create", createRouter);
 app.use("/api/accounts", accountsRouter);
 app.use("/api/sweep", sweepRouter);
+app.use("/api/stats", statsRouter);
 
 // Health check (no auth)
 app.get("/health", (_req: Request, res: Response) => {

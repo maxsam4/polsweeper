@@ -27,6 +27,16 @@ function initSchema(db: Database.Database): void {
     );
 
     CREATE INDEX IF NOT EXISTS idx_master ON virtual_accounts(master);
+
+    CREATE TABLE IF NOT EXISTS sweep_events (
+      id INTEGER PRIMARY KEY,
+      account_address TEXT NOT NULL,
+      master TEXT NOT NULL,
+      tx_hash TEXT NOT NULL,
+      tokens_swept TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_sweep_events_created ON sweep_events(created_at);
   `);
 }
 

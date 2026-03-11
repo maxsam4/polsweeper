@@ -108,6 +108,96 @@ export function insertAccountsBatch(
 }
 
 /** Atomic check + insert: re-checks count inside transaction to prevent TOCTOU race */
+// ── Sweep Events ────────────────────────────────────────────────────────
+
+export function insertSweepEvent(
+  accountAddress: string,
+  master: string,
+  txHash: string,
+  tokenLabels: string[]
+): void {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const stmt = db.prepare(
+    "INSERT INTO sweep_events (account_address, master, tx_hash, tokens_swept, created_at) VALUES (?, ?, ?, ?, ?)"
+  );
+  stmt.run(
+    accountAddress.toLowerCase(),
+    master.toLowerCase(),
+    txHash,
+    JSON.stringify(tokenLabels),
+    now
+  );
+}
+
+export interface SweepEvent {
+  id: number;
+  account_address: string;
+  master: string;
+  tx_hash: string;
+  tokens_swept: string[];
+  created_at: string;
+}
+
+export interface Stats {
+  totalAccounts: number;
+  uniqueMasters: number;
+  deployedAccounts: number;
+  undeployedAccounts: number;
+  totalSweeps: number;
+  recentSweeps: SweepEvent[];
+}
+
+export function getStats(): Stats {
+  const db = getDb();
+
+  const accountStats = db
+    .prepare(
+      `SELECT
+        COUNT(*) as totalAccounts,
+        COUNT(DISTINCT master) as uniqueMasters,
+        SUM(CASE WHEN deployed = 1 THEN 1 ELSE 0 END) as deployedAccounts,
+        SUM(CASE WHEN deployed = 0 THEN 1 ELSE 0 END) as undeployedAccounts
+      FROM virtual_accounts`
+    )
+    .get() as {
+    totalAccounts: number;
+    uniqueMasters: number;
+    deployedAccounts: number;
+    undeployedAccounts: number;
+  };
+
+  const totalSweeps = (
+    db.prepare("SELECT COUNT(*) as count FROM sweep_events").get() as {
+      count: number;
+    }
+  ).count;
+
+  const recentRows = db
+    .prepare(
+      "SELECT * FROM sweep_events ORDER BY id DESC LIMIT 10"
+    )
+    .all() as {
+    id: number;
+    account_address: string;
+    master: string;
+    tx_hash: string;
+    tokens_swept: string;
+    created_at: string;
+  }[];
+
+  const recentSweeps: SweepEvent[] = recentRows.map((row) => ({
+    ...row,
+    tokens_swept: JSON.parse(row.tokens_swept) as string[],
+  }));
+
+  return {
+    ...accountStats,
+    totalSweeps,
+    recentSweeps,
+  };
+}
+
 export function atomicCreateAccounts(
   master: string,
   accounts: { master: string; address: string; accountIndex: number }[],

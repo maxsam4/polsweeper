@@ -1,7 +1,7 @@
 import { type Address } from "viem";
 import { getBalances, type TokenBalance } from "./indexer";
 import { sendDeployAndSweep, sendSweepAll } from "./chain";
-import { markDeployed } from "../db/queries";
+import { markDeployed, insertSweepEvent } from "../db/queries";
 
 export interface SweepResult {
   swept: boolean;
@@ -74,12 +74,14 @@ export async function sweepAccount(
     );
     // Mark as deployed in DB only after successful tx
     markDeployed(address);
+    insertSweepEvent(address, master, txHash, allTokenLabels);
     console.log(
       `Deployed and swept ${address} (tx: ${txHash})`
     );
   } else {
     // Clone already deployed — call sweepAll directly on clone
     txHash = await sendSweepAll(address as Address, tokenAddresses);
+    insertSweepEvent(address, master, txHash, allTokenLabels);
     console.log(`Swept ${address} (tx: ${txHash})`);
   }
 

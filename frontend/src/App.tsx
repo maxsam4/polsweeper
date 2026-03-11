@@ -4,10 +4,14 @@ import { getAccounts, createAccounts } from './api/client';
 import AddressInput from './components/AddressInput';
 import CreatePanel from './components/CreatePanel';
 import AccountList from './components/AccountList';
+import StatsPanel from './components/StatsPanel';
+
+type View = 'main' | 'stats';
 
 const MAX_ACCOUNTS = 5;
 
 export default function App() {
+  const [view, setView] = useState<View>('main');
   const [masterAddress, setMasterAddress] = useState('');
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
@@ -56,38 +60,59 @@ export default function App() {
         </p>
       </header>
 
-      {/* Address Input */}
-      <section className="section">
-        <p className="section__label">Master Address</p>
-        <AddressInput onSubmit={fetchAccounts} loading={loadingAccounts} />
-        {error && <p className="error-msg">{error}</p>}
-      </section>
+      <nav className="nav-tabs">
+        <button
+          className={`nav-tabs__btn${view === 'main' ? ' nav-tabs__btn--active' : ''}`}
+          onClick={() => setView('main')}
+        >
+          Accounts
+        </button>
+        <button
+          className={`nav-tabs__btn${view === 'stats' ? ' nav-tabs__btn--active' : ''}`}
+          onClick={() => setView('stats')}
+        >
+          Stats
+        </button>
+      </nav>
 
-      {/* Create Panel */}
-      {masterAddress && (
-        <section className="section">
-          <p className="section__label">Create Accounts</p>
-          <CreatePanel
-            currentCount={accounts.length}
-            maxCount={MAX_ACCOUNTS}
-            loading={creatingAccounts}
-            onCreate={handleCreate}
-          />
-        </section>
-      )}
+      {view === 'stats' ? (
+        <StatsPanel />
+      ) : (
+        <>
+          {/* Address Input */}
+          <section className="section">
+            <p className="section__label">Master Address</p>
+            <AddressInput onSubmit={fetchAccounts} loading={loadingAccounts} />
+            {error && <p className="error-msg">{error}</p>}
+          </section>
 
-      {/* Account List */}
-      {masterAddress && (
-        <section className="section">
-          <p className="section__label">Accounts</p>
-          {loadingAccounts ? (
-            <div className="address-input__loading">
-              <span className="spinner spinner--dark" />
-            </div>
-          ) : (
-            <AccountList accounts={accounts} />
+          {/* Create Panel */}
+          {masterAddress && (
+            <section className="section">
+              <p className="section__label">Create Accounts</p>
+              <CreatePanel
+                currentCount={accounts.length}
+                maxCount={MAX_ACCOUNTS}
+                loading={creatingAccounts}
+                onCreate={handleCreate}
+              />
+            </section>
           )}
-        </section>
+
+          {/* Account List */}
+          {masterAddress && (
+            <section className="section">
+              <p className="section__label">Accounts</p>
+              {loadingAccounts ? (
+                <div className="address-input__loading">
+                  <span className="spinner spinner--dark" />
+                </div>
+              ) : (
+                <AccountList accounts={accounts} />
+              )}
+            </section>
+          )}
+        </>
       )}
     </main>
   );
