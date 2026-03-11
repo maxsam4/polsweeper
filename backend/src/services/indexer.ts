@@ -1,7 +1,31 @@
+import * as fs from "fs";
+import * as path from "path";
 import { config } from "../config";
 
 const SEQUENCE_ENDPOINT =
   "https://polygon-indexer.sequence.app/rpc/Indexer/GetTokenBalancesSummary";
+
+// Load token whitelist at startup
+let contractWhitelist: string[] = [];
+const tokenMeta = new Map<string, { symbol: string; name: string; decimals: number }>();
+
+try {
+  const whitelistPath = path.join(__dirname, "../../data/token-whitelist.json");
+  const raw = JSON.parse(fs.readFileSync(whitelistPath, "utf-8"));
+  if (Array.isArray(raw.tokens)) {
+    for (const t of raw.tokens) {
+      contractWhitelist.push(t.address);
+      tokenMeta.set(t.address.toLowerCase(), {
+        symbol: t.symbol,
+        name: t.name,
+        decimals: t.decimals,
+      });
+    }
+    console.log(`Loaded token whitelist: ${contractWhitelist.length} tokens`);
+  }
+} catch (err: any) {
+  console.warn(`Token whitelist not loaded (${err.message}), running without filtering`);
+}
 
 const MAX_BACKOFF_MS = 30_000;
 const INITIAL_BACKOFF_MS = 2_000;
@@ -88,6 +112,7 @@ export async function getBalances(
     filter: {
       contractStatus: "ALL",
       accountAddresses: addresses,
+      ...(contractWhitelist.length > 0 && { contractWhitelist }),
     },
   };
 
@@ -117,6 +142,14 @@ export async function getBalances(
   }
 
   return results;
+}
+
+/**
+ * Returns a human-readable symbol for a token address, or the address itself.
+ */
+export function getTokenSymbol(address: string): string {
+  const meta = tokenMeta.get(address.toLowerCase());
+  return meta?.symbol ?? address;
 }
 
 /**
