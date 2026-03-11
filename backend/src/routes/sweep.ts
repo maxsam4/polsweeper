@@ -28,6 +28,11 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       dbAccount.deployed
     );
 
+    if (result.skipped) {
+      res.status(409).json({ error: result.skipped });
+      return;
+    }
+
     if (!result.swept) {
       res.json({ message: "No balances to sweep", swept: false });
       return;

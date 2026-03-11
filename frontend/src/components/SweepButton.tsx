@@ -10,18 +10,38 @@ type SweepState = 'idle' | 'loading' | 'success' | 'error';
 
 export default function SweepButton({ address, disabled }: SweepButtonProps) {
   const [state, setState] = useState<SweepState>('idle');
+  const [txHash, setTxHash] = useState<string | null>(null);
 
   async function handleSweep() {
     if (disabled || state === 'loading') return;
     setState('loading');
+    setTxHash(null);
     try {
-      await sweepAccount(address);
+      const result = await sweepAccount(address);
       setState('success');
-      setTimeout(() => setState('idle'), 2000);
+      if (result.txHash) {
+        setTxHash(result.txHash);
+        setTimeout(() => { setState('idle'); setTxHash(null); }, 5000);
+      } else {
+        setTimeout(() => setState('idle'), 2000);
+      }
     } catch {
       setState('error');
       setTimeout(() => setState('idle'), 2500);
     }
+  }
+
+  if (state === 'success' && txHash) {
+    return (
+      <a
+        className="sweep-tx-link"
+        href={`https://polygonscan.com/tx/${txHash}`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        View Tx
+      </a>
+    );
   }
 
   const label = {

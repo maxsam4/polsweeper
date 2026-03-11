@@ -370,6 +370,11 @@ body::after {
   font-size: 0.75rem;
   color: var(--text-primary);
   word-break: break-all;
+  text-decoration: none;
+}
+
+.account-card__address:hover {
+  color: var(--primary-light);
 }
 
 .account-card__copy-btn {
@@ -653,6 +658,28 @@ body::after {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-secondary);
+}
+
+/* ─── Sweep Tx Link ─── */
+.sweep-tx-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--success);
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  background: rgba(52, 211, 153, 0.08);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.sweep-tx-link:hover {
+  background: rgba(52, 211, 153, 0.15);
+  border-color: rgba(52, 211, 153, 0.5);
 }
 
 /* ─── Responsive ─── */

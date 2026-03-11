@@ -1,10 +1,13 @@
 import express, { type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import { timingSafeEqual } from "crypto";
+import { formatEther, parseEther } from "viem";
 import { config } from "./config";
 import { closeDb } from "./db/schema";
 import { getAllAccounts } from "./db/queries";
 import { sweepAccount } from "./services/sweep";
+import { getGasBalance, getLastGasBalance, getQueueDepth } from "./services/chain";
+import { getWhitelistCount } from "./services/indexer";
 import createRouter from "./routes/create";
 import accountsRouter from "./routes/accounts";
 import sweepRouter from "./routes/sweep";
@@ -58,8 +61,24 @@ app.use("/api/sweep", sweepRouter);
 app.use("/api/stats", statsRouter);
 
 // Health check (no auth)
-app.get("/health", (_req: Request, res: Response) => {
-  res.json({ status: "ok" });
+const startedAt = Date.now();
+let sweeperLastCycleAt: string | null = null;
+let sweeperAccountsInLastCycle = 0;
+
+app.get("/health", async (_req: Request, res: Response) => {
+  const gasBalance = getLastGasBalance();
+  res.json({
+    status: "ok",
+    uptime: Math.floor((Date.now() - startedAt) / 1000),
+    sweeper: {
+      running: sweeperRunning,
+      lastCycleAt: sweeperLastCycleAt,
+      accountsInLastCycle: sweeperAccountsInLastCycle,
+    },
+    gasBalance: gasBalance !== null ? formatEther(gasBalance) : null,
+    queueDepth: getQueueDepth(),
+    whitelistCount: getWhitelistCount(),
+  });
 });
 
 // ── Sweeper Loop ────────────────────────────────────────────────────────
@@ -72,6 +91,20 @@ async function runSweeper(): Promise<void> {
 
   while (sweeperRunning) {
     try {
+      // Check gas balance before each cycle
+      const gasBalance = await getGasBalance();
+      const gasBalanceFormatted = formatEther(gasBalance);
+      console.log(`Sweeper cycle: gas balance = ${gasBalanceFormatted} POL`);
+
+      if (gasBalance < parseEther("0.5")) {
+        console.error(`CRITICAL: Gas balance too low (${gasBalanceFormatted} POL), skipping cycle`);
+        await new Promise((r) => setTimeout(r, 30000));
+        continue;
+      }
+      if (gasBalance < parseEther("5")) {
+        console.warn(`WARNING: Gas balance low (${gasBalanceFormatted} POL)`);
+      }
+
       const accounts = getAllAccounts();
 
       for (const account of accounts) {
@@ -91,6 +124,9 @@ async function runSweeper(): Promise<void> {
         // 2 second delay between accounts
         await new Promise((r) => setTimeout(r, 2000));
       }
+
+      sweeperLastCycleAt = new Date().toISOString();
+      sweeperAccountsInLastCycle = accounts.length;
 
       // Sleep between sweep cycles to avoid hammering the indexer
       if (accounts.length === 0) {

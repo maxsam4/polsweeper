@@ -1,12 +1,15 @@
 import { type Address } from "viem";
-import { getBalances, type TokenBalance } from "./indexer";
+import { getBalances, getTokenSymbol, type TokenBalance } from "./indexer";
 import { sendDeployAndSweep, sendSweepAll } from "./chain";
 import { markDeployed, insertSweepEvent } from "../db/queries";
+
+const sweepingNow = new Set<string>();
 
 export interface SweepResult {
   swept: boolean;
   txHash?: string;
   tokens: string[];
+  skipped?: string;
 }
 
 /**
@@ -21,69 +24,79 @@ export async function sweepAccount(
   accountIndex: number,
   deployed: number
 ): Promise<SweepResult> {
-  // Query indexer for balances at this address
-  const balances = await getBalances([address]);
-
-  if (!balances || balances.length === 0) {
-    return { swept: false, tokens: [] };
+  const key = address.toLowerCase();
+  if (sweepingNow.has(key)) {
+    return { swept: false, tokens: [], skipped: "Sweep already in progress" };
   }
+  sweepingNow.add(key);
 
-  // Extract unique token contract addresses (non-native).
-  // Native POL has contractAddress as the zero address or empty string in Sequence.
-  const seen = new Set<string>();
-  const tokenAddresses: Address[] = [];
-  const allTokenLabels: string[] = [];
+  try {
+    // Query indexer for balances at this address
+    const balances = await getBalances([address]);
 
-  for (const b of balances) {
-    const bal = BigInt(b.balance);
-    if (bal <= 0n) continue;
-
-    const contractAddr = b.contractAddress.toLowerCase();
-    // Native POL: zero address or empty
-    if (
-      contractAddr === "0x0000000000000000000000000000000000000000" ||
-      contractAddr === ""
-    ) {
-      if (!seen.has("native")) {
-        seen.add("native");
-        allTokenLabels.push("POL (native)");
-      }
-    } else if (!seen.has(contractAddr)) {
-      seen.add(contractAddr);
-      tokenAddresses.push(contractAddr as Address);
-      allTokenLabels.push(contractAddr);
+    if (!balances || balances.length === 0) {
+      return { swept: false, tokens: [] };
     }
-  }
 
-  if (allTokenLabels.length === 0) {
-    return { swept: false, tokens: [] };
-  }
+    // Extract unique token contract addresses (non-native).
+    // Native POL has contractAddress as the zero address or empty string in Sequence.
+    const seen = new Set<string>();
+    const tokenAddresses: Address[] = [];
+    const allTokenLabels: string[] = [];
 
-  console.log(
-    `Sweeping ${address} (index ${accountIndex}): ${allTokenLabels.length} token(s) — ${allTokenLabels.join(", ")}`
-  );
+    for (const b of balances) {
+      const bal = BigInt(b.balance);
+      if (bal <= 0n) continue;
 
-  let txHash: string;
+      const contractAddr = b.contractAddress.toLowerCase();
+      // Native POL: zero address or empty
+      if (
+        contractAddr === "0x0000000000000000000000000000000000000000" ||
+        contractAddr === ""
+      ) {
+        if (!seen.has("native")) {
+          seen.add("native");
+          allTokenLabels.push("POL (native)");
+        }
+      } else if (!seen.has(contractAddr)) {
+        seen.add(contractAddr);
+        tokenAddresses.push(contractAddr as Address);
+        allTokenLabels.push(getTokenSymbol(contractAddr));
+      }
+    }
 
-  if (!deployed) {
-    // Clone not yet deployed — use factory.deployAndSweep
-    txHash = await sendDeployAndSweep(
-      master as Address,
-      BigInt(accountIndex),
-      tokenAddresses
-    );
-    // Mark as deployed in DB only after successful tx
-    markDeployed(address);
-    insertSweepEvent(address, master, txHash, allTokenLabels);
+    if (allTokenLabels.length === 0) {
+      return { swept: false, tokens: [] };
+    }
+
     console.log(
-      `Deployed and swept ${address} (tx: ${txHash})`
+      `Sweeping ${address} (index ${accountIndex}): ${allTokenLabels.length} token(s) — ${allTokenLabels.join(", ")}`
     );
-  } else {
-    // Clone already deployed — call sweepAll directly on clone
-    txHash = await sendSweepAll(address as Address, tokenAddresses);
-    insertSweepEvent(address, master, txHash, allTokenLabels);
-    console.log(`Swept ${address} (tx: ${txHash})`);
-  }
 
-  return { swept: true, txHash, tokens: allTokenLabels };
+    let txHash: string;
+
+    if (!deployed) {
+      // Clone not yet deployed — use factory.deployAndSweep
+      txHash = await sendDeployAndSweep(
+        master as Address,
+        BigInt(accountIndex),
+        tokenAddresses
+      );
+      // Mark as deployed in DB only after successful tx
+      markDeployed(address);
+      insertSweepEvent(address, master, txHash, allTokenLabels);
+      console.log(
+        `Deployed and swept ${address} (tx: ${txHash})`
+      );
+    } else {
+      // Clone already deployed — call sweepAll directly on clone
+      txHash = await sendSweepAll(address as Address, tokenAddresses);
+      insertSweepEvent(address, master, txHash, allTokenLabels);
+      console.log(`Swept ${address} (tx: ${txHash})`);
+    }
+
+    return { swept: true, txHash, tokens: allTokenLabels };
+  } finally {
+    sweepingNow.delete(key);
+  }
 }

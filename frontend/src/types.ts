@@ -1,6 +1,8 @@
 export interface TokenBalance {
   contractAddress: string;
   balance: string;
+  symbol?: string;
+  decimals?: number;
 }
 
 export interface Account {

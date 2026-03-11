@@ -153,6 +153,22 @@ export function getTokenSymbol(address: string): string {
 }
 
 /**
+ * Returns the number of tokens in the whitelist.
+ */
+export function getWhitelistCount(): number {
+  return contractWhitelist.length;
+}
+
+/**
+ * Returns token info (symbol + decimals) for a given address, or null if unknown.
+ */
+export function getTokenInfo(address: string): { symbol: string; decimals: number } | null {
+  const meta = tokenMeta.get(address.toLowerCase());
+  if (!meta) return null;
+  return { symbol: meta.symbol, decimals: meta.decimals };
+}
+
+/**
  * Groups balances by account address for easier consumption.
  */
 export function groupBalancesByAddress(

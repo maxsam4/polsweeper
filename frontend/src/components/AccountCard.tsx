@@ -7,11 +7,12 @@ interface AccountCardProps {
   animationDelay: number;
 }
 
-function formatBalance(raw: string): string {
+function formatBalance(raw: string, decimals = 18): string {
   const wei = BigInt(raw);
-  const whole = wei / BigInt(10 ** 18);
-  const fractional = wei % BigInt(10 ** 18);
-  const fracStr = fractional.toString().padStart(18, '0').slice(0, 4);
+  const divisor = BigInt(10 ** decimals);
+  const whole = wei / divisor;
+  const fractional = wei % divisor;
+  const fracStr = fractional.toString().padStart(decimals, '0').slice(0, 4);
   return `${whole.toLocaleString()}.${fracStr}`;
 }
 
@@ -62,9 +63,14 @@ export default function AccountCard({ account, animationDelay }: AccountCardProp
         <span className="account-card__index">#{account.index}</span>
 
         <div className="account-card__address-row">
-          <span className="account-card__address">
+          <a
+            className="account-card__address"
+            href={`https://polygonscan.com/address/${account.address}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             {account.address}
-          </span>
+          </a>
           <button
             type="button"
             className={`account-card__copy-btn${copied ? ' account-card__copy-btn--copied' : ''}`}
@@ -94,10 +100,10 @@ export default function AccountCard({ account, animationDelay }: AccountCardProp
           account.balances.map((b) => (
             <div key={b.contractAddress} className="balance-row">
               <span className="balance-row__token" title={b.contractAddress}>
-                {truncateToken(b.contractAddress)}
+                {b.symbol ?? truncateToken(b.contractAddress)}
               </span>
               <span className="balance-row__amount">
-                {formatBalance(b.balance)}
+                {formatBalance(b.balance, b.decimals ?? 18)}
               </span>
             </div>
           ))

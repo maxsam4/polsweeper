@@ -1,6 +1,7 @@
 import {
   createPublicClient,
   createWalletClient,
+  formatEther,
   http,
   parseGwei,
   type PublicClient,
@@ -31,6 +32,24 @@ export const walletClient: WalletClient = createWalletClient({
 });
 
 export const gasAccountAddress: Address = account.address;
+
+// ── Gas Balance ──────────────────────────────────────────────────────────
+
+let lastGasBalance: bigint | null = null;
+
+export function getLastGasBalance(): bigint | null {
+  return lastGasBalance;
+}
+
+export async function getGasBalance(): Promise<bigint> {
+  const balance = await publicClient.getBalance({ address: account.address });
+  lastGasBalance = balance;
+  return balance;
+}
+
+export function getQueueDepth(): number {
+  return queue.length;
+}
 
 // ── ABI exports ─────────────────────────────────────────────────────────
 
