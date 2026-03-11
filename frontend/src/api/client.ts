@@ -1,6 +1,6 @@
 import { Account } from '../types';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3101';
+const BASE_URL = import.meta.env.VITE_API_URL ?? '';
 const AUTH_TOKEN = import.meta.env.VITE_AUTH_TOKEN || '';
 
 function headers(): HeadersInit {
