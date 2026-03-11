@@ -107,49 +107,108 @@ export async function getVirtualAddress(
   return result as Address;
 }
 
+// ── Gas Bump Logic ─────────────────────────────────────────────────────
+// Sends a tx and bumps fees by 10% every 10s until confirmed, up to 1000 gwei cap.
+
+const BUMP_INTERVAL_MS = 10_000;
+const BUMP_MULTIPLIER = 110n; // 10%
+const INITIAL_PRIORITY_FEE = parseGwei("31");
+const MAX_FEE_WEI = parseGwei("1000");
+
+type GasOpts = { nonce: number; maxPriorityFeePerGas: bigint; maxFeePerGas: bigint };
+
+async function sendWithGasBump(
+  writeTx: (opts: GasOpts) => Promise<`0x${string}`>
+): Promise<`0x${string}`> {
+  const nonce = await publicClient.getTransactionCount({
+    address: gasAccountAddress,
+    blockTag: "pending",
+  });
+
+  const block = await publicClient.getBlock();
+  const baseFee = block.baseFeePerGas ?? parseGwei("30");
+
+  let priorityFee = INITIAL_PRIORITY_FEE;
+  let maxFee = baseFee * 2n + priorityFee;
+  if (maxFee > MAX_FEE_WEI) maxFee = MAX_FEE_WEI;
+
+  let latestHash = await writeTx({ nonce, maxPriorityFeePerGas: priorityFee, maxFeePerGas: maxFee });
+  let lastBumpTime = Date.now();
+
+  while (true) {
+    await new Promise((r) => setTimeout(r, 2_000));
+
+    try {
+      const receipt = await publicClient.getTransactionReceipt({ hash: latestHash });
+      if (receipt.status === "reverted") {
+        throw new Error(`Transaction reverted: ${latestHash}`);
+      }
+      return latestHash;
+    } catch (err: any) {
+      if (!err.name?.includes("TransactionReceiptNotFound")) throw err;
+    }
+
+    if (Date.now() - lastBumpTime < BUMP_INTERVAL_MS) continue;
+    if (maxFee >= MAX_FEE_WEI) continue;
+
+    priorityFee = (priorityFee * BUMP_MULTIPLIER) / 100n;
+    maxFee = (maxFee * BUMP_MULTIPLIER) / 100n;
+    if (priorityFee > MAX_FEE_WEI) priorityFee = MAX_FEE_WEI;
+    if (maxFee > MAX_FEE_WEI) maxFee = MAX_FEE_WEI;
+
+    console.log(
+      `Gas bump: maxFee=${(Number(maxFee) / 1e9).toFixed(1)} gwei, ` +
+        `priorityFee=${(Number(priorityFee) / 1e9).toFixed(1)} gwei`
+    );
+
+    try {
+      latestHash = await writeTx({ nonce, maxPriorityFeePerGas: priorityFee, maxFeePerGas: maxFee });
+      lastBumpTime = Date.now();
+    } catch {
+      // Replacement failed (likely nonce used = tx mined), next poll will find receipt
+    }
+  }
+}
+
 export async function sendDeployAndSweep(
   master: Address,
   index: bigint,
   tokens: Address[]
 ): Promise<`0x${string}`> {
-  return queueTransaction(async () => {
-    const hash = await walletClient.writeContract({
-      address: config.factoryAddress,
-      abi: factoryABI,
-      functionName: "deployAndSweep",
-      args: [master, index, tokens],
-      chain: polygon,
-      account,
-      maxPriorityFeePerGas: parseGwei("31"),
-    });
-
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
-    if (receipt.status === "reverted") {
-      throw new Error(`deployAndSweep reverted: ${hash}`);
-    }
-    return hash;
-  });
+  return queueTransaction(() =>
+    sendWithGasBump(({ nonce, maxPriorityFeePerGas, maxFeePerGas }) =>
+      walletClient.writeContract({
+        address: config.factoryAddress,
+        abi: factoryABI,
+        functionName: "deployAndSweep",
+        args: [master, index, tokens],
+        chain: polygon,
+        account,
+        nonce,
+        maxPriorityFeePerGas,
+        maxFeePerGas,
+      })
+    )
+  );
 }
 
 export async function sendSweepAll(
   cloneAddress: Address,
   tokens: Address[]
 ): Promise<`0x${string}`> {
-  return queueTransaction(async () => {
-    const hash = await walletClient.writeContract({
-      address: cloneAddress,
-      abi: implABI,
-      functionName: "sweepAll",
-      args: [tokens],
-      chain: polygon,
-      account,
-      maxPriorityFeePerGas: parseGwei("31"),
-    });
-
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
-    if (receipt.status === "reverted") {
-      throw new Error(`sweepAll reverted: ${hash}`);
-    }
-    return hash;
-  });
+  return queueTransaction(() =>
+    sendWithGasBump(({ nonce, maxPriorityFeePerGas, maxFeePerGas }) =>
+      walletClient.writeContract({
+        address: cloneAddress,
+        abi: implABI,
+        functionName: "sweepAll",
+        args: [tokens],
+        chain: polygon,
+        account,
+        nonce,
+        maxPriorityFeePerGas,
+        maxFeePerGas,
+      })
+    )
+  );
 }

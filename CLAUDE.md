@@ -56,11 +56,13 @@ cd backend && npm install
 cd backend && npm run dev               # Start dev server (port from .env, default 3101)
 cd backend && npm run typecheck         # Type check
 cd backend && npm run build             # Compile to dist/
+cd backend && npm test                  # Run vitest tests
 
 # Frontend
 cd frontend && npm install
 cd frontend && npm run dev              # Dev server
 cd frontend && npm run build            # Production build to dist/
+cd frontend && npm test                 # Run vitest tests
 ```
 
 ## API Routes
@@ -70,6 +72,7 @@ cd frontend && npm run build            # Production build to dist/
 | `/api/create` | POST | `{ master, count }` | Create virtual accounts off-chain |
 | `/api/accounts/:master` | GET | — | List accounts + balances from indexer |
 | `/api/sweep` | POST | `{ account }` | Sweep one account |
+| `/api/stats` | GET | — | System stats + recent sweeps |
 | `/health` | GET | — | Health check (no auth) |
 
 All `/api/` routes require `Authorization: Bearer <token>` header.
@@ -83,6 +86,7 @@ All `/api/` routes require `Authorization: Bearer <token>` header.
 - `FACTORY_ADDRESS` — Deployed VirtualAccountCreator address
 - `AUTH_TOKEN` — Bearer token for API auth
 - `PORT` — Server port (default 3101)
+- `DB_PATH` — SQLite DB path (default `polsweeper.db`; set `:memory:` for tests)
 
 ### Frontend (`frontend/.env`)
 - `VITE_API_URL` — Backend base URL (empty string if using nginx proxy)
@@ -96,6 +100,13 @@ All `/api/` routes require `Authorization: Bearer <token>` header.
 
 - **Solidity**: `forge fmt` — 120 char lines, 4-space tabs, no bracket spacing, optimizer 200 runs
 - **TypeScript**: No linter configured; follow existing patterns
+
+## Testing
+
+Always add or update tests when adding or modifying backend/frontend code.
+- **Backend**: vitest + supertest; tests in `backend/test/`. Mock chain/indexer modules, use `DB_PATH=:memory:` for isolation.
+- **Frontend**: vitest + @testing-library/react; tests in `frontend/test/`. Mock API client module.
+- **Contracts**: Foundry; tests in `contracts/test/`.
 
 ## Key Design Decisions
 
