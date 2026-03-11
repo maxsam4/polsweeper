@@ -1,0 +1,35 @@
+[
+  {
+    "type": "function",
+    "name": "getAddress",
+    "inputs": [
+      { "name": "master", "type": "address", "internalType": "address" },
+      { "name": "index", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [
+      { "name": "", "type": "address", "internalType": "address" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "deployAndSweep",
+    "inputs": [
+      { "name": "master", "type": "address", "internalType": "address" },
+      { "name": "index", "type": "uint256", "internalType": "uint256" },
+      { "name": "tokens", "type": "address[]", "internalType": "address[]" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "AccountDeployed",
+    "inputs": [
+      { "name": "master", "type": "address", "indexed": true, "internalType": "address" },
+      { "name": "index", "type": "uint256", "indexed": false, "internalType": "uint256" },
+      { "name": "clone", "type": "address", "indexed": false, "internalType": "address" }
+    ],
+    "anonymous": false
+  }
+]
