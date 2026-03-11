@@ -367,33 +367,33 @@ body::after {
 
 .account-card__address {
   font-family: var(--font-mono);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-all;
 }
 
 .account-card__copy-btn {
   flex-shrink: 0;
   background: none;
-  border: none;
+  border: 1px solid var(--border);
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 4px;
+  padding: 2px 8px;
   border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.15s;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+  transition: color 0.15s, border-color 0.15s;
 }
 
 .account-card__copy-btn:hover {
   color: var(--text-primary);
+  border-color: var(--text-secondary);
 }
 
 .account-card__copy-btn--copied {
   color: var(--success);
+  border-color: var(--success);
 }
 
 .account-card__status {
