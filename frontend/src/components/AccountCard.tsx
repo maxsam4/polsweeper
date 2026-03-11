@@ -9,7 +9,7 @@ interface AccountCardProps {
 
 function formatBalance(raw: string, decimals = 18): string {
   const wei = BigInt(raw);
-  const divisor = BigInt(10 ** decimals);
+  const divisor = BigInt(10) ** BigInt(decimals);
   const whole = wei / divisor;
   const fractional = wei % divisor;
   const fracStr = fractional.toString().padStart(decimals, '0').slice(0, 4);

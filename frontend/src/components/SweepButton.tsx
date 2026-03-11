@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { sweepAccount } from '../api/client';
 
 interface SweepButtonProps {
@@ -11,6 +11,18 @@ type SweepState = 'idle' | 'loading' | 'success' | 'error';
 export default function SweepButton({ address, disabled }: SweepButtonProps) {
   const [state, setState] = useState<SweepState>('idle');
   const [txHash, setTxHash] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  function resetAfter(ms: number) {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => { setState('idle'); setTxHash(null); }, ms);
+  }
 
   async function handleSweep() {
     if (disabled || state === 'loading') return;
@@ -21,13 +33,13 @@ export default function SweepButton({ address, disabled }: SweepButtonProps) {
       setState('success');
       if (result.txHash) {
         setTxHash(result.txHash);
-        setTimeout(() => { setState('idle'); setTxHash(null); }, 5000);
+        resetAfter(5000);
       } else {
-        setTimeout(() => setState('idle'), 2000);
+        resetAfter(2000);
       }
     } catch {
       setState('error');
-      setTimeout(() => setState('idle'), 2500);
+      resetAfter(2500);
     }
   }
 
