@@ -1,0 +1,138 @@
+<h2>Design: Frontend UI</h2>
+<p class="subtitle">Section 2 of 3 &mdash; Vite + React single-page app</p>
+
+<div class="section">
+  <h3>Page Layout</h3>
+  <div class="mockup">
+    <div class="mockup-header">Polsweeper — Virtual Account Manager</div>
+    <div class="mockup-body" style="padding: 0;">
+      <!-- Nav -->
+      <div style="display: flex; align-items: center; padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02);">
+        <span style="font-weight: 700; font-size: 16px; color: #7c3aed;">Polsweeper</span>
+        <span style="margin-left: auto; font-size: 13px; color: #9ca3af;">Virtual Accounts on Polygon</span>
+      </div>
+
+      <div style="padding: 24px 20px;">
+        <!-- Step 1: Enter Master Address -->
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; margin-bottom: 12px;">
+            <span style="background: #7c3aed; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-right: 10px;">1</span>
+            <h3 style="margin: 0; font-size: 15px;">Your Master Address</h3>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <div style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 10px 14px; font-family: monospace; font-size: 13px; color: #9ca3af;">
+              0x... enter your Polygon address
+            </div>
+            <button style="background: #7c3aed; color: white; border: none; border-radius: 6px; padding: 10px 20px; font-size: 13px; cursor: pointer; white-space: nowrap;">
+              Load
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 2: Create Accounts -->
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; margin-bottom: 12px;">
+            <span style="background: #7c3aed; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-right: 10px;">2</span>
+            <h3 style="margin: 0; font-size: 15px;">Create Virtual Accounts</h3>
+            <span style="margin-left: auto; font-size: 12px; color: #9ca3af; background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 12px;">2 of 5 used</span>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <span style="font-size: 13px; color: #d1d5db;">How many:</span>
+            <div style="display: flex; gap: 4px;">
+              <button style="background: #7c3aed; color: white; border: none; border-radius: 6px; width: 36px; height: 36px; font-size: 14px; cursor: pointer;">1</button>
+              <button style="background: rgba(255,255,255,0.05); color: #d1d5db; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; width: 36px; height: 36px; font-size: 14px; cursor: pointer;">2</button>
+              <button style="background: rgba(255,255,255,0.05); color: #d1d5db; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; width: 36px; height: 36px; font-size: 14px; cursor: pointer;">3</button>
+            </div>
+            <button style="background: #059669; color: white; border: none; border-radius: 6px; padding: 10px 20px; font-size: 13px; cursor: pointer; margin-left: auto;">
+              Create (gasless)
+            </button>
+          </div>
+          <p style="font-size: 12px; color: #6b7280; margin-top: 8px; margin-bottom: 0;">
+            Free to create. Max 5 per address. Need more? <a href="#" style="color: #7c3aed;">Contact Polygon Labs</a>
+          </p>
+        </div>
+
+        <!-- Step 3: Account List -->
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 20px;">
+          <div style="display: flex; align-items: center; margin-bottom: 16px;">
+            <span style="background: #7c3aed; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-right: 10px;">3</span>
+            <h3 style="margin: 0; font-size: 15px;">Your Virtual Accounts</h3>
+            <button style="margin-left: auto; background: none; border: 1px solid rgba(255,255,255,0.15); color: #9ca3af; border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer;">
+              Refresh Balances
+            </button>
+          </div>
+
+          <!-- Account Row 1 -->
+          <div style="border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 14px; margin-bottom: 10px; background: rgba(255,255,255,0.02);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <div>
+                <span style="font-family: monospace; font-size: 13px; color: #e5e7eb;">0xABC...1234</span>
+                <span style="font-size: 11px; color: #6b7280; margin-left: 8px;">#0</span>
+              </div>
+              <button style="font-size: 11px; color: #9ca3af; background: none; border: none; cursor: pointer; text-decoration: underline;">Copy</button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="background: rgba(34,197,94,0.1); color: #86efac; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">1.523 POL</span>
+              <span style="background: rgba(59,130,246,0.1); color: #93c5fd; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">200 USDC</span>
+              <div style="margin-left: auto; display: flex; gap: 6px;">
+                <button style="background: #059669; color: white; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; cursor: pointer;">
+                  Sweep POL
+                </button>
+                <button style="background: #2563eb; color: white; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; cursor: pointer;">
+                  Sweep ERC20
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Account Row 2 -->
+          <div style="border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 14px; margin-bottom: 10px; background: rgba(255,255,255,0.02);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <div>
+                <span style="font-family: monospace; font-size: 13px; color: #e5e7eb;">0xDEF...5678</span>
+                <span style="font-size: 11px; color: #6b7280; margin-left: 8px;">#1</span>
+              </div>
+              <button style="font-size: 11px; color: #9ca3af; background: none; border: none; cursor: pointer; text-decoration: underline;">Copy</button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="background: rgba(255,255,255,0.05); color: #6b7280; padding: 3px 10px; border-radius: 12px; font-size: 12px;">0 POL</span>
+              <div style="margin-left: auto;">
+                <span style="font-size: 12px; color: #6b7280;">No balance</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sweep ERC20 Modal hint -->
+          <div style="margin-top: 16px; padding: 14px; border: 1px dashed rgba(124,58,237,0.3); border-radius: 8px; background: rgba(124,58,237,0.05);">
+            <p style="margin: 0; font-size: 13px; color: #a78bfa;">
+              <strong>Sweep ERC20 dialog:</strong> When clicking "Sweep ERC20", a modal opens asking for the token contract address. Pre-fills with known tokens from the Sequence indexer response.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Frontend Structure</h3>
+  <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; font-family: monospace; font-size: 13px;">
+<pre style="margin:0;">frontend/
+├── index.html
+├── vite.config.ts
+├── package.json
+├── src/
+│   ├── main.tsx
+│   ├── App.tsx              ← Main layout, state management
+│   ├── components/
+│   │   ├── AddressInput.tsx  ← Step 1: master address input
+│   │   ├── CreatePanel.tsx   ← Step 2: create accounts
+│   │   ├── AccountList.tsx   ← Step 3: list + balances
+│   │   ├── AccountCard.tsx   ← Single account row
+│   │   └── SweepModal.tsx    ← ERC20 token address dialog
+│   ├── api/
+│   │   └── client.ts         ← Backend API calls
+│   └── types.ts              ← Shared types
+└── .env                      ← VITE_API_URL</pre>
+  </div>
+</div>

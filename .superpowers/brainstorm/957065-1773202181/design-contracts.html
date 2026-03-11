@@ -1,0 +1,149 @@
+<h2>Design: Smart Contracts</h2>
+<p class="subtitle">Section 1 of 3 &mdash; Core on-chain architecture</p>
+
+<div class="section">
+  <h3>Contract Overview</h3>
+  <div class="mockup">
+    <div class="mockup-header">Contract Architecture</div>
+    <div class="mockup-body" style="font-family: monospace; font-size: 13px; line-height: 1.7; padding: 20px;">
+<pre style="margin:0; white-space: pre;">
+                    ┌───────────────────────────────────────────────────┐
+                    │         VirtualAccountCreator (Factory)           │
+                    │                                                   │
+                    │  state:                                           │
+                    │    implementation: address (immutable)             │
+                    │    masterOf: mapping(clone → master)               │
+                    │    accountCount: mapping(master → count)           │
+                    │                                                   │
+                    │  createAccounts(count)                             │
+                    │    → for i in 0..count:                           │
+                    │        salt = keccak256(msg.sender, currentIdx+i) │
+                    │        clone = Clones.cloneDeterministic(impl,salt)│
+                    │        masterOf[clone] = msg.sender               │
+                    │    → accountCount[msg.sender] += count            │
+                    │    → emits AccountsCreated(master, startIdx, count)│
+                    │                                                   │
+                    │  getAddress(master, index) → view                  │
+                    │    → Clones.predictDeterministicAddress(impl,salt) │
+                    │                                                   │
+                    │  getAddresses(master, start, count) → view         │
+                    │    → returns address[] of predicted addresses      │
+                    └────────────────┬──────────────────────────────────┘
+                                     │
+                      deploys EIP-1167 clones via CREATE2
+                                     │
+              ┌──────────────────────┼──────────────────────┐
+              ▼                      ▼                      ▼
+   ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+   │   Clone 0        │  │   Clone 1        │  │   Clone N        │
+   │   45 bytes       │  │   45 bytes       │  │   45 bytes       │
+   │   delegatecall   │  │   delegatecall   │  │   delegatecall   │
+   └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘
+            │                     │                      │
+            └─────────────────────┼──────────────────────┘
+                                  ▼
+                    ┌──────────────────────────────────────┐
+                    │      VirtualAccountImpl (Singleton)   │
+                    │                                      │
+                    │  immutable: factory address           │
+                    │                                      │
+                    │  sweepPOL()                           │
+                    │    → master = factory.masterOf(this)  │
+                    │    → send all POL to master           │
+                    │                                      │
+                    │  sweepERC20(token)                    │
+                    │    → master = factory.masterOf(this)  │
+                    │    → transfer all token to master     │
+                    │                                      │
+                    │  receive() → accepts POL             │
+                    └──────────────────────────────────────┘
+</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Key Design Decisions</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px;">
+      <h4 style="margin-top:0; color: #7dd3fc;">Master stored in Factory</h4>
+      <p style="font-size: 14px;">The factory's <code>masterOf</code> mapping is the source of truth. The impl reads it via a cross-contract call. This means:</p>
+      <ul style="font-size: 14px;">
+        <li>No storage in clones (cheaper deploy)</li>
+        <li>No initialize() call needed (no front-running risk)</li>
+        <li>Factory is the single registry of all accounts</li>
+      </ul>
+    </div>
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px;">
+      <h4 style="margin-top:0; color: #7dd3fc;">CREATE2 Salt Design</h4>
+      <p style="font-size: 14px;"><code>salt = keccak256(master, index)</code></p>
+      <p style="font-size: 14px;">This makes addresses deterministic and predictable before deployment. Anyone can compute the address of any virtual account given the master and index.</p>
+    </div>
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px;">
+      <h4 style="margin-top:0; color: #7dd3fc;">Immutable Factory in Impl</h4>
+      <p style="font-size: 14px;">The impl stores the factory address as an <code>immutable</code>. Since immutables are in bytecode (not storage), they work correctly through delegatecall.</p>
+    </div>
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px;">
+      <h4 style="margin-top:0; color: #7dd3fc;">No Access Control on Sweep</h4>
+      <p style="font-size: 14px;">Anyone can call <code>sweepPOL()</code> or <code>sweepERC20(token)</code>. Funds always go to the fixed master, so there's no attack vector. This lets the off-chain sweeper (or anyone) trigger sweeps permissionlessly.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Gas Estimates (Polygon)</h3>
+  <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px;">
+    <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+      <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <td style="padding: 8px;"><strong>Deploy impl (one-time)</strong></td>
+        <td style="padding: 8px; text-align: right;">~200k gas</td>
+        <td style="padding: 8px; text-align: right; color: #86efac;">~$0.01</td>
+      </tr>
+      <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <td style="padding: 8px;"><strong>Deploy factory (one-time)</strong></td>
+        <td style="padding: 8px; text-align: right;">~500k gas</td>
+        <td style="padding: 8px; text-align: right; color: #86efac;">~$0.03</td>
+      </tr>
+      <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <td style="padding: 8px;"><strong>Create 1 virtual account</strong></td>
+        <td style="padding: 8px; text-align: right;">~80k gas</td>
+        <td style="padding: 8px; text-align: right; color: #86efac;">~$0.005</td>
+      </tr>
+      <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <td style="padding: 8px;"><strong>Create 10 virtual accounts</strong></td>
+        <td style="padding: 8px; text-align: right;">~550k gas</td>
+        <td style="padding: 8px; text-align: right; color: #86efac;">~$0.03</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px;"><strong>Sweep POL</strong></td>
+        <td style="padding: 8px; text-align: right;">~35k gas</td>
+        <td style="padding: 8px; text-align: right; color: #86efac;">~$0.002</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px;"><strong>Sweep ERC20</strong></td>
+        <td style="padding: 8px; text-align: right;">~50k gas</td>
+        <td style="padding: 8px; text-align: right; color: #86efac;">~$0.003</td>
+      </tr>
+    </table>
+    <p style="font-size: 12px; color: #9ca3af; margin-top: 8px;">* Estimates based on ~30 gwei gas price, POL ~$0.50</p>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Events</h3>
+  <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; font-family: monospace; font-size: 13px;">
+    <pre style="margin:0;">// Factory events
+event AccountsCreated(
+    address indexed master,
+    uint256 startIndex,
+    uint256 count
+);
+
+// Impl events (emitted from clone context)
+event Swept(
+    address indexed master,
+    address indexed token,  // address(0) for POL
+    uint256 amount
+);</pre>
+  </div>
+</div>

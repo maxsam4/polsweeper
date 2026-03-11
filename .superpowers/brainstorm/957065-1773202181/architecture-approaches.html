@@ -1,0 +1,157 @@
+<h2>Architecture Approaches</h2>
+<p class="subtitle">How should the factory, proxies, and implementation contract relate?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Factory + Shared Implementation (Recommended)</h3>
+      <p>One <code>VirtualAccountCreator</code> factory deploys EIP-1167 clones via CREATE2. All clones delegate to a single <code>VirtualAccountImpl</code> contract. The impl stores nothing &mdash; it reads the master address from the clone's immutable args (baked into the proxy bytecode).</p>
+      <div class="mockup" style="margin-top: 12px;">
+        <div class="mockup-body" style="font-family: monospace; font-size: 13px; line-height: 1.6; padding: 16px;">
+<pre style="margin:0; white-space: pre;">
+┌─────────────────────────────┐
+│   VirtualAccountCreator     │
+│   (Factory)                 │
+│                             │
+│  createAccounts(master, n)  │
+│    → CREATE2 + EIP-1167     │
+│    → deterministic addrs    │
+│                             │
+│  getAddress(master, idx)    │
+│    → precompute address     │
+└──────────┬──────────────────┘
+           │ deploys clones
+           ▼
+┌──────────────────┐  ┌──────────────────┐
+│  Clone 0         │  │  Clone 1         │
+│  (45 bytes)      │  │  (45 bytes)      │
+│  master=0xABC..  │  │  master=0xABC..  │
+│  delegatecall ──►│  │  delegatecall ──►│
+└──────────┬───────┘  └──────────┬───────┘
+           │                     │
+           ▼                     ▼
+     ┌─────────────────────────────┐
+     │   VirtualAccountImpl        │
+     │   (Shared singleton)        │
+     │                             │
+     │  sweepPOL()                 │
+     │    → send balance to master │
+     │                             │
+     │  sweepERC20(token)          │
+     │    → transfer to master     │
+     └─────────────────────────────┘
+</pre>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top: 8px;">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Cheapest deployment (~$0.001 per clone)</li>
+          <li>Master baked into bytecode = no storage reads</li>
+          <li>Deterministic addresses before deployment</li>
+          <li>Single impl to audit</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Master cannot be changed (but we chose this)</li>
+          <li>Impl upgrade requires redeploying clones</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Factory + Storage-based Impl</h3>
+      <p>Same factory pattern, but each clone stores its master address in contract storage (set via <code>initialize()</code>). The impl reads master from storage on each sweep.</p>
+      <div class="mockup" style="margin-top: 12px;">
+        <div class="mockup-body" style="font-family: monospace; font-size: 13px; line-height: 1.6; padding: 16px;">
+<pre style="margin:0; white-space: pre;">
+┌─────────────────────────────┐
+│   VirtualAccountCreator     │
+│   (Factory)                 │
+│                             │
+│  createAccounts(master, n)  │
+│    → CREATE2 + EIP-1167     │
+│    → clone.initialize(master)│
+└──────────┬──────────────────┘
+           │ deploys + initializes
+           ▼
+┌──────────────────┐  ┌──────────────────┐
+│  Clone 0         │  │  Clone 1         │
+│  storage:        │  │  storage:        │
+│    master=0xABC  │  │    master=0xABC  │
+│  delegatecall ──►│  │  delegatecall ──►│
+└──────────┬───────┘  └──────────┬───────┘
+           │                     │
+           ▼                     ▼
+     ┌─────────────────────────────┐
+     │   VirtualAccountImpl        │
+     │   (reads master from slot)  │
+     └─────────────────────────────┘
+</pre>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top: 8px;">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>More familiar pattern (OpenZeppelin Clones)</li>
+          <li>Could support updatable master if needed later</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Higher deploy cost (initialize tx per clone)</li>
+          <li>SLOAD on every sweep = higher gas</li>
+          <li>Storage slot collision risks</li>
+          <li>Needs initializer guard</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>ClonesWithImmutableArgs (CWIA)</h3>
+      <p>Uses <a href="https://github.com/wighawag/clones-with-immutable-args">CWIA library</a> to append immutable data (master address) after the clone bytecode. The impl reads master from calldata/code, not storage.</p>
+      <div class="mockup" style="margin-top: 12px;">
+        <div class="mockup-body" style="font-family: monospace; font-size: 13px; line-height: 1.6; padding: 16px;">
+<pre style="margin:0; white-space: pre;">
+┌─────────────────────────────┐
+│   VirtualAccountCreator     │
+│   (Factory using CWIA)      │
+│                             │
+│  createAccounts(master, n)  │
+│    → CWIA.clone(impl,       │
+│        abi.encode(master),  │
+│        salt)                │
+└──────────┬──────────────────┘
+           │
+           ▼
+┌──────────────────────────────┐
+│  Clone (~65 bytes)           │
+│  bytecode tail = master addr │
+│  delegatecall to impl ──────►│
+└──────────────────────────────┘
+           │
+           ▼
+     ┌─────────────────────────────┐
+     │   VirtualAccountImpl        │
+     │   _getArgAddress(0) = master│
+     └─────────────────────────────┘
+</pre>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top: 8px;">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>No storage needed (reads from bytecode)</li>
+          <li>Gas-efficient reads</li>
+          <li>Clean pattern for immutable per-clone data</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Extra dependency (CWIA library)</li>
+          <li>Slightly larger clone bytecode (~65 vs 45 bytes)</li>
+          <li>Less widely adopted than standard 1167</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+</div>

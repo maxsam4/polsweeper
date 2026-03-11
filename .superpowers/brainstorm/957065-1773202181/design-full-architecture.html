@@ -1,0 +1,176 @@
+<h2>Design: Full System Architecture</h2>
+<p class="subtitle">Updated with gasless creation, Sequence indexer, and backend service</p>
+
+<div class="section">
+  <h3>System Overview</h3>
+  <div class="mockup">
+    <div class="mockup-header">End-to-End Architecture</div>
+    <div class="mockup-body" style="font-family: monospace; font-size: 12px; line-height: 1.6; padding: 20px; overflow-x: auto;">
+<pre style="margin:0; white-space: pre;">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              FRONTEND (Vite + React)                            │
+│                                                                                 │
+│  ┌─────────────────────┐  ┌─────────────────────┐  ┌────────────────────────┐  │
+│  │  Create Accounts     │  │  List Accounts       │  │  Sweep Controls        │  │
+│  │                     │  │                     │  │                        │  │
+│  │  [Master Address___]│  │  Addr    | Balance   │  │  [Select Account  ▼]  │  │
+│  │  [Count: 1-5      ]│  │  0xAB.. | 1.5 POL   │  │  [ERC20 addr (opt)__] │  │
+│  │  [Create ▶]       │  │  0xCD.. | 0 POL     │  │  [Sweep ▶]            │  │
+│  │                     │  │  0xEF.. | 200 USDC  │  │                        │  │
+│  │  Limit: 5 per master│  │                     │  │  Status: Swept 1.5 POL│  │
+│  │  "Contact Polygon   │  └──────────┬──────────┘  └───────────┬────────────┘  │
+│  │   Labs for more"    │             │                          │               │
+│  └──────────┬──────────┘             │                          │               │
+│             │ POST /api/create       │ GET /api/accounts/:master│ POST /api/sweep│
+└─────────────┼────────────────────────┼──────────────────────────┼───────────────┘
+              │                        │                          │
+              ▼                        ▼                          ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                        BACKEND (Express + SQLite + viem)                        │
+│                                                                                 │
+│  ┌────────────────────┐  ┌─────────────────────┐  ┌─────────────────────────┐  │
+│  │  POST /api/create   │  │  GET /api/accounts   │  │  POST /api/sweep        │  │
+│  │                    │  │    /:master           │  │                         │  │
+│  │  Validate count≤5  │  │                     │  │  1. Call sweepPOL() or  │  │
+│  │  Check existing cnt│  │  1. Query SQLite    │  │     sweepERC20(token)   │  │
+│  │  Call factory      │  │  2. Query Sequence  │  │  2. Use SWEEP gas acct  │  │
+│  │    .createAccounts()│  │     Indexer for     │  │  3. Return tx hash      │  │
+│  │  Use CREATE gas acct│  │     balances        │  │                         │  │
+│  │  Store in SQLite   │  │  3. Return merged   │  └────────────┬────────────┘  │
+│  │  Return addresses  │  │     data            │               │               │
+│  └────────┬───────────┘  └──────────┬──────────┘               │               │
+│           │                         │                          │               │
+│  ┌────────┴─────────────────────────┴──────────────────────────┴────────────┐  │
+│  │                          SQLite Database                                  │  │
+│  │                                                                          │  │
+│  │  virtual_accounts: master, address, index, created_at, tx_hash           │  │
+│  └──────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                 │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │  Sweeper Cron Job (polls every N minutes)                               │    │
+│  │                                                                         │    │
+│  │  1. Load all virtual accounts from SQLite                               │    │
+│  │  2. Batch query Sequence Indexer for balances                           │    │
+│  │  3. For each account with balance > 0:                                  │    │
+│  │     → Call sweepPOL() if POL balance > gas cost                         │    │
+│  │     → Call sweepERC20(token) for each token with balance                │    │
+│  │  4. Use SWEEP gas account                                               │    │
+│  │  5. Log results                                                         │    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
+└────────────────────────────────────────┬────────────────────────────────────────┘
+                                         │
+                    Uses two separate gas accounts:
+                    🔑 CREATE_GAS_ACCOUNT (for factory calls)
+                    🔑 SWEEP_GAS_ACCOUNT (for sweep calls)
+                                         │
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                          POLYGON BLOCKCHAIN                                     │
+│                                                                                 │
+│  ┌────────────────────────────────────┐  ┌──────────────────────────────────┐  │
+│  │  VirtualAccountCreator (Factory)    │  │  VirtualAccountImpl (Singleton)  │  │
+│  │                                    │  │                                  │  │
+│  │  createAccounts(master, count)     │  │  sweepPOL()                      │  │
+│  │  getAddress(master, index)         │  │  sweepERC20(token)               │  │
+│  │  getAddresses(master, start, n)    │  │  receive() payable               │  │
+│  │  masterOf(clone) → master          │  │  factory → immutable             │  │
+│  │  accountCount(master) → count      │  │                                  │  │
+│  └────────────────────────────────────┘  └──────────────────────────────────┘  │
+│                                                                                 │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐                                       │
+│  │ Clone 0  │ │ Clone 1  │ │ Clone N  │  ← EIP-1167 minimal proxies           │
+│  │ 45 bytes │ │ 45 bytes │ │ 45 bytes │    can receive POL + ERC20             │
+│  └──────────┘ └──────────┘ └──────────┘                                       │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                         │
+                                         │ Sequence Indexer queries
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                     SEQUENCE INDEXER (External)                                  │
+│                                                                                 │
+│  POST /rpc/Indexer/GetTokenBalancesSummary                                      │
+│  Body: { chainID: "polygon",                                                    │
+│          filter: { accountAddresses: ["0x...", "0x...", ...] } }                │
+│  → Returns POL + ERC20 balances for all queried addresses                       │
+└─────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Data Flow: Create Accounts</h3>
+  <div class="mockup">
+    <div class="mockup-body" style="font-family: monospace; font-size: 13px; line-height: 1.6; padding: 16px;">
+<pre style="margin:0; white-space: pre;">
+User enters master address + count (1-5) in UI
+         │
+         ▼
+Frontend POST /api/create { master: "0x...", count: 3 }
+         │
+         ▼
+Backend validates:
+  ✓ count ≤ 5
+  ✓ existing + count ≤ 5 (query SQLite)
+  ✓ master is valid address
+         │
+         ▼
+Backend calls factory.createAccounts(master, 3)
+  → signs tx with CREATE_GAS_ACCOUNT private key
+  → waits for confirmation
+         │
+         ▼
+Backend stores in SQLite:
+  (master, clone_addr_0, 0, now, tx_hash)
+  (master, clone_addr_1, 1, now, tx_hash)
+  (master, clone_addr_2, 2, now, tx_hash)
+         │
+         ▼
+Returns addresses to frontend
+</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Data Flow: Manual Sweep</h3>
+  <div class="mockup">
+    <div class="mockup-body" style="font-family: monospace; font-size: 13px; line-height: 1.6; padding: 16px;">
+<pre style="margin:0; white-space: pre;">
+User clicks Sweep on a virtual account
+  optionally provides ERC20 token address
+         │
+         ▼
+Frontend POST /api/sweep { account: "0x...", token?: "0xUSDC..." }
+         │
+         ▼
+Backend determines sweep type:
+  If token provided → call sweepERC20(token) on clone
+  If no token       → call sweepPOL() on clone
+         │
+         ▼
+Backend signs tx with SWEEP_GAS_ACCOUNT
+  → waits for confirmation
+         │
+         ▼
+Returns tx hash + swept amount to frontend
+</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Gas Account Separation</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+    <div style="background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); border-radius: 8px; padding: 16px;">
+      <h4 style="margin-top:0; color: #86efac;">CREATE_GAS_ACCOUNT</h4>
+      <p style="font-size: 14px;">Funds account creation txns. Budget is predictable (5 accounts max per master × fixed gas per clone).</p>
+      <p style="font-size: 13px; color: #9ca3af;">Env var: <code>CREATE_GAS_PRIVATE_KEY</code></p>
+    </div>
+    <div style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 8px; padding: 16px;">
+      <h4 style="margin-top:0; color: #93c5fd;">SWEEP_GAS_ACCOUNT</h4>
+      <p style="font-size: 14px;">Funds sweep txns. Usage scales with incoming deposits. Separate so a sweep gas drain doesn't block account creation.</p>
+      <p style="font-size: 13px; color: #9ca3af;">Env var: <code>SWEEP_GAS_PRIVATE_KEY</code></p>
+    </div>
+  </div>
+</div>

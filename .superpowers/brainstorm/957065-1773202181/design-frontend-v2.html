@@ -1,0 +1,116 @@
+<h2>Design: Frontend UI (Refined)</h2>
+<p class="subtitle">Minimalist, spacious, easy to read</p>
+
+<div class="section">
+  <div class="mockup">
+    <div class="mockup-header">Polsweeper — Minimalist Direction</div>
+    <div class="mockup-body" style="padding: 0; background: #0a0a0a;">
+
+      <!-- Header -->
+      <div style="padding: 32px 48px 0 48px;">
+        <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px;">
+          <span style="font-size: 22px; font-weight: 600; color: #fafafa; letter-spacing: -0.5px;">polsweeper</span>
+        </div>
+        <p style="font-size: 14px; color: #525252; margin: 0 0 32px 0; font-weight: 400;">Virtual accounts on Polygon</p>
+      </div>
+
+      <!-- Master Address Section -->
+      <div style="padding: 0 48px; margin-bottom: 40px;">
+        <label style="display: block; font-size: 13px; color: #737373; margin-bottom: 8px; font-weight: 500; letter-spacing: 0.3px;">MASTER ADDRESS</label>
+        <div style="display: flex; gap: 12px;">
+          <input type="text" placeholder="0x..." style="flex: 1; background: transparent; border: 1px solid #262626; border-radius: 8px; padding: 14px 16px; font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #fafafa; outline: none;" />
+          <button style="background: #fafafa; color: #0a0a0a; border: none; border-radius: 8px; padding: 14px 28px; font-size: 14px; font-weight: 600; cursor: pointer; letter-spacing: -0.2px;">Load</button>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div style="border-top: 1px solid #1a1a1a; margin: 0 48px;"></div>
+
+      <!-- Create Section -->
+      <div style="padding: 32px 48px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+          <div>
+            <h3 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600; color: #fafafa; letter-spacing: -0.3px;">Create accounts</h3>
+            <p style="margin: 0; font-size: 13px; color: #525252;">Gasless. Max 5 per address.</p>
+          </div>
+          <span style="font-size: 13px; color: #404040;">2 / 5</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="display: flex; gap: 6px;">
+            <button style="background: #fafafa; color: #0a0a0a; border: none; border-radius: 6px; width: 40px; height: 40px; font-size: 15px; font-weight: 600; cursor: pointer;">1</button>
+            <button style="background: transparent; color: #737373; border: 1px solid #262626; border-radius: 6px; width: 40px; height: 40px; font-size: 15px; cursor: pointer;">2</button>
+            <button style="background: transparent; color: #737373; border: 1px solid #262626; border-radius: 6px; width: 40px; height: 40px; font-size: 15px; cursor: pointer;">3</button>
+          </div>
+          <button style="background: transparent; color: #fafafa; border: 1px solid #404040; border-radius: 8px; padding: 10px 24px; font-size: 14px; font-weight: 500; cursor: pointer; margin-left: auto;">Create</button>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div style="border-top: 1px solid #1a1a1a; margin: 0 48px;"></div>
+
+      <!-- Accounts List -->
+      <div style="padding: 32px 48px 40px 48px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+          <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #fafafa; letter-spacing: -0.3px;">Accounts</h3>
+        </div>
+
+        <!-- Account 1 -->
+        <div style="padding: 20px 0; border-bottom: 1px solid #1a1a1a;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #d4d4d4;">0xABC...1234</span>
+              <span style="font-size: 12px; color: #404040;">#0</span>
+            </div>
+            <button style="font-size: 12px; color: #525252; background: none; border: none; cursor: pointer;">Copy</button>
+          </div>
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <span style="font-size: 14px; color: #a3a3a3; font-weight: 500;">1.523 <span style="color: #525252;">POL</span></span>
+            <span style="font-size: 14px; color: #a3a3a3; font-weight: 500;">200.00 <span style="color: #525252;">USDC</span></span>
+            <div style="margin-left: auto; display: flex; gap: 8px;">
+              <button style="background: transparent; color: #a3a3a3; border: 1px solid #262626; border-radius: 6px; padding: 8px 16px; font-size: 13px; cursor: pointer;">Sweep POL</button>
+              <button style="background: transparent; color: #a3a3a3; border: 1px solid #262626; border-radius: 6px; padding: 8px 16px; font-size: 13px; cursor: pointer;">Sweep ERC20</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Account 2 -->
+        <div style="padding: 20px 0; border-bottom: 1px solid #1a1a1a;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #d4d4d4;">0xDEF...5678</span>
+              <span style="font-size: 12px; color: #404040;">#1</span>
+            </div>
+            <button style="font-size: 12px; color: #525252; background: none; border: none; cursor: pointer;">Copy</button>
+          </div>
+          <div style="display: flex; align-items: center;">
+            <span style="font-size: 14px; color: #404040;">No balance</span>
+          </div>
+        </div>
+
+        <!-- Need more -->
+        <p style="font-size: 13px; color: #404040; margin-top: 24px; margin-bottom: 0;">
+          Need more than 5 accounts? <a href="#" style="color: #737373; text-decoration: underline;">Contact Polygon Labs</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Design Principles</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px;">
+      <h4 style="margin-top: 0; color: #e5e7eb;">Spacious</h4>
+      <p style="font-size: 13px; color: #9ca3af;">Generous padding, breathing room between sections. No visual clutter.</p>
+    </div>
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px;">
+      <h4 style="margin-top: 0; color: #e5e7eb;">Readable</h4>
+      <p style="font-size: 13px; color: #9ca3af;">Clear type hierarchy. Monospace for addresses. Muted labels, prominent values.</p>
+    </div>
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px;">
+      <h4 style="margin-top: 0; color: #e5e7eb;">Neutral</h4>
+      <p style="font-size: 13px; color: #9ca3af;">Grayscale palette. No loud colors. Borders and buttons use subtle contrast.</p>
+    </div>
+  </div>
+  <p style="font-size: 13px; color: #9ca3af; margin-top: 12px;">Full visual polish will be applied during implementation using the <code>frontend-design</code> skill.</p>
+</div>
