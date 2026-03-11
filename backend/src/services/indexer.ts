@@ -10,15 +10,24 @@ export interface TokenBalance {
   contractAddress: string;
   accountAddress: string;
   balance: string;
-  contractType: string;
-  blockHash: string;
-  blockNumber: number;
+  contractType?: string;
+  blockHash?: string;
+  blockNumber?: number;
+  chainId?: number;
+  uniqueCollectibles?: string;
+}
+
+interface NativeBalance {
+  accountAddress: string;
   chainId: number;
-  uniqueCollectibles: string;
+  balance: string;
+  name?: string;
+  symbol?: string;
 }
 
 export interface BalancesResponse {
   balances: TokenBalance[];
+  nativeBalances?: NativeBalance[];
 }
 
 async function fetchWithRetry(
@@ -92,7 +101,22 @@ export async function getBalances(
   });
 
   const data = (await response.json()) as BalancesResponse;
-  return data.balances || [];
+  const results: TokenBalance[] = data.balances || [];
+
+  // Native POL balances come in a separate array — normalize them
+  if (data.nativeBalances) {
+    for (const nb of data.nativeBalances) {
+      if (BigInt(nb.balance) > 0n) {
+        results.push({
+          contractAddress: "0x0000000000000000000000000000000000000000",
+          accountAddress: nb.accountAddress,
+          balance: nb.balance,
+        });
+      }
+    }
+  }
+
+  return results;
 }
 
 /**
