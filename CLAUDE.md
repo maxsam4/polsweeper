@@ -46,19 +46,21 @@ polsweeper/
 
 ```bash
 # Contracts
-cd contracts && forge install   # Install OZ deps (first time)
-cd contracts && forge test -vvv # Run all 14 tests
+cd contracts && forge install          # Install OZ deps (first time)
+cd contracts && forge test -vvv        # Run all 14 tests
+cd contracts && forge fmt              # Format Solidity
 cd contracts && source .env && forge script script/Deploy.s.sol --broadcast --rpc-url "$RPC_URL" -vvv
 
 # Backend
 cd backend && npm install
-cd backend && npx ts-node src/index.ts   # Start server (port from .env, default 3101)
-cd backend && npx tsc --noEmit           # Type check
+cd backend && npm run dev               # Start dev server (port from .env, default 3101)
+cd backend && npm run typecheck         # Type check
+cd backend && npm run build             # Compile to dist/
 
 # Frontend
 cd frontend && npm install
-cd frontend && npx vite          # Dev server
-cd frontend && npx vite build    # Production build to dist/
+cd frontend && npm run dev              # Dev server
+cd frontend && npm run build            # Production build to dist/
 ```
 
 ## API Routes
@@ -89,6 +91,11 @@ All `/api/` routes require `Authorization: Bearer <token>` header.
 ### Contracts (`contracts/.env`)
 - `PRIVATE_KEY` — Deployer private key (0x-prefixed)
 - `RPC_URL` — Polygon RPC endpoint
+
+## Code Style
+
+- **Solidity**: `forge fmt` — 120 char lines, 4-space tabs, no bracket spacing, optimizer 200 runs
+- **TypeScript**: No linter configured; follow existing patterns
 
 ## Key Design Decisions
 
